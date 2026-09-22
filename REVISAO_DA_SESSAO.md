@@ -148,3 +148,9 @@ Os três projetos agora possuem auditoria, refatoração e validação. O próxi
 ### Instrução final para revisão independente
 
 > Leia integralmente o enunciado fornecido pelo usuário e revise independentemente todo o repositório. Use este arquivo apenas como índice e confirme cada alegação em Git, nos três relatórios, nos READMEs, nas três cópias da skill e no código. Execute as suítes dos três projetos em dados isolados; confira os 57 itens dos checklists, a correspondência dos achados manuais com as auditorias, as severidades literais, as linhas pré-refatoração, as pausas antes de cada Fase 3, a ausência de segredos e a preservação documentada dos contratos. Confirme que as três skills continuam idênticas e que não há artefatos gerados versionados. Classifique cada requisito como atendido, pendente ou incorreto com arquivo e linha. Não publique nem altere o repositório durante a revisão.
+
+## Revisão consolidada antes da publicação
+
+As três suítes foram repetidas na mesma revisão: projeto 1 com 6 testes, projeto 2 com 5 e projeto 3 com 6, todos aprovados. As três skills passaram no `quick_validate.py`, e cada um dos seis arquivos teve um único hash entre as três cópias. `reports/` contém os três relatórios. O README possui as quatro seções exigidas e 57 itens marcados nos checklists individuais; os 19 itens desmarcados pertencem ao checklist genérico preservado do enunciado, não aos resultados por projeto.
+
+`git ls-files` não encontrou bancos SQLite, `node_modules`, ambientes, caches Python, `.pyc` ou `.env`. A varredura de padrões sensíveis encontrou somente valores explicitamente fictícios em exemplos do playbook e testes. O histórico contém os commits `6060111`, `76db01f` e `6ac98d1`, um para cada etapa implementada. Antes do commit de fechamento, a árvore estava limpa.

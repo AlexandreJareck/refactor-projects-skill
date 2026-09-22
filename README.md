@@ -618,7 +618,17 @@ Mudanças intencionais de contrato: hashes de senha não são mais retornados; f
 - [x] Aplicação inicia por HTTP sem erros em teste isolado.
 - [x] Todos os 22 endpoints originais responderam em sucesso e erro representativo.
 
-Os três projetos estão refatorados e validados. Restam a revisão consolidada final, o commit desta etapa e a publicação do fork público.
+### Validação consolidada
+
+Na revisão final, as três suítes passaram novamente em dados isolados: projeto 1 com 6 testes, projeto 2 com 5 testes e projeto 3 com 6 testes. As três cópias de `refactor-arch` passaram no `quick_validate.py`; os seis arquivos de cada cópia têm hashes idênticos. Os três relatórios estão em `reports/`, e os 57 itens dos checklists individuais estão marcados com evidência. O Git não rastreia bancos, ambientes, `node_modules`, caches Python nem arquivos `.env`. A busca por valores sensíveis encontrou apenas exemplos declarados no playbook e valores exclusivos de testes.
+
+Commits rastreáveis da implementação:
+
+- `6060111` — skill, análise, auditoria e refatoração do projeto 1;
+- `76db01f` — auditoria e refatoração do projeto 2;
+- `6ac98d1` — auditoria e refatoração do projeto 3.
+
+Os três projetos estão refatorados, documentados e validados. A publicação e a verificação pública do fork são registradas após o push final.
 
 ## Como Executar
 
