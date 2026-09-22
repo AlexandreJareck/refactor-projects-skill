@@ -446,3 +446,100 @@ A skill deve atingir os seguintes mínimos em **todos os 3 projetos**:
 - **Projetos diferentes exigem adaptação** — a Fase 3 de um projeto já parcialmente organizado não vai ter as mesmas transformações de um monolito. Sua skill deve se adaptar ao contexto.
 - **Pedir confirmação na Fase 2 é obrigatório** — o humano deve revisar o relatório antes de qualquer modificação.
 - **Consulte as referências do curso** — revise a documentação oficial da ferramenta escolhida e os materiais das aulas para relembrar a estrutura e anatomia de uma skill.
+
+## Análise Manual
+
+Esta análise foi feita sobre o código original, antes da criação e execução da skill. Os caminhos e linhas abaixo se referem ao commit inicial `6d1ce62`.
+
+### Projeto 1 — `code-smells-project`
+
+Stack: Python, Flask 3.1.1, Flask-CORS 5.0.1 e SQLite. Domínio: API de loja com produtos, usuários, pedidos e relatório de vendas. A aplicação concentra quatro domínios em `app.py`, `controllers.py`, `models.py` e `database.py`.
+
+| ID | Severidade | Evidência | Impacto |
+|---|---|---|---|
+| P1-01 | CRITICAL | `app.py:59-69` executa SQL recebido no corpo HTTP de `/admin/query`, sem autenticação. | Qualquer cliente pode ler ou modificar todo o banco. |
+| P1-02 | CRITICAL | `models.py:122-128` armazena a senha recebida sem hash; `models.py:79-85` a inclui na listagem de usuários. | Credenciais ficam expostas no banco e na API. |
+| P1-03 | MEDIUM | `models.py:174-192` consulta itens e produtos dentro do loop de pedidos. | O número de consultas cresce com cada pedido e item (N+1). |
+| P1-04 | MEDIUM | `controllers.py:24-54` e `controllers.py:64-90` repetem validações de produto. | Regras divergentes surgem com facilidade; a atualização já omite a validação de categoria. |
+| P1-05 | LOW | `controllers.py:8-12` mistura `print` de diagnóstico com resposta HTTP. | Logs não são estruturados e sua leitura/manutenção fica difícil. |
+| P1-06 | LOW | `controllers.py:52-54` embute a lista de categorias válidas diretamente no endpoint. | O valor de domínio fica disperso e é difícil manter consistente. |
+
+### Projeto 2 — `ecommerce-api-legacy`
+
+Stack: Node.js, Express `^4.18.2` declarado e 4.22.1 instalado pelo lockfile, com SQLite em memória. Domínio: LMS com checkout, matrículas, pagamentos e relatório financeiro. Os três endpoints estão concentrados em `src/AppManager.js`; exemplos de chamadas constam em `api.http`.
+
+| ID | Severidade | Evidência | Impacto |
+|---|---|---|---|
+| P2-01 | CRITICAL | `src/AppManager.js:45` imprime número integral do cartão e chave de pagamento no log. | Dados sensíveis podem vazar pelos logs. |
+| P2-02 | CRITICAL | `src/AppManager.js:4-139` reúne inicialização do banco, acesso a dados, checkout, relatório e rotas. | A classe viola completamente a separação de responsabilidades, conforme o exemplo de God Class do enunciado. |
+| P2-03 | MEDIUM | `src/AppManager.js:89-106` consulta matrículas, usuários e pagamentos em loops aninhados. | O relatório faz múltiplas consultas por curso e matrícula. |
+| P2-04 | MEDIUM | `src/AppManager.js:50-61` grava matrícula, pagamento e auditoria em operações separadas sem transação nem tratamento do erro final. | Falhas intermediárias deixam dados inconsistentes ou retornam sucesso sem auditoria. |
+| P2-05 | LOW | `src/AppManager.js:29-33` usa nomes locais `u`, `e`, `p`, `cid` e `cc`. | O fluxo de checkout se torna mais difícil de ler e revisar. |
+| P2-06 | LOW | `src/AppManager.js:2` importa `totalRevenue`, mas não o utiliza. | O código sugere uma dependência inexistente e aumenta o ruído de manutenção. |
+
+### Projeto 3 — `task-manager-api`
+
+Stack: Python, Flask 3.0.0, Flask-SQLAlchemy 3.1.1 e SQLite. Domínio: usuários, tarefas, categorias e relatórios. Já existem pastas `models/`, `routes/`, `services/` e `utils/`, mas várias responsabilidades ainda estão nas rotas.
+
+| ID | Severidade | Evidência | Impacto |
+|---|---|---|---|
+| P3-01 | CRITICAL | `models/user.py:20-32` expõe o hash da senha na serialização e usa MD5 sem algoritmo próprio para senhas. | Os hashes ficam acessíveis pela API e são inadequados para proteção de credenciais. |
+| P3-02 | CRITICAL | `services/notification_service.py:7-10` contém usuário e senha SMTP no código. | A credencial é distribuída com o projeto e não pode ser gerenciada por ambiente. |
+| P3-03 | MEDIUM | `routes/report_routes.py:53-56` busca tarefas separadamente para cada usuário. | O relatório de produtividade sofre com consultas N+1. |
+| P3-04 | MEDIUM | `routes/user_routes.py:127-132` captura qualquer exceção sem identificar ou registrar a causa. | Erros de programação e falhas de banco recebem tratamento indistinto e difícil de diagnosticar. |
+| P3-05 | LOW | `app.py:7` importa `os`, `sys` e `json` sem uso. | Imports supérfluos dificultam a leitura das dependências reais. |
+| P3-06 | LOW | `utils/helpers.py:110-115` define constantes de validação, mas `utils/helpers.py:74-85` repete esses valores literalmente. | Regras simples podem divergir durante a manutenção. |
+
+## Construção da Skill
+
+A ferramenta escolhida foi o Codex. A skill `refactor-arch` está em `.agents/skills/refactor-arch/` dentro de cada subprojeto. O `SKILL.md` conduz análise, auditoria com pausa obrigatória e refatoração após confirmação explícita. Cinco arquivos Markdown em `references/` tratam das heurísticas de análise, do catálogo de 12 anti-patterns, do template de relatório, das responsabilidades MVC e do playbook com 14 transformações antes/depois. O catálogo usa a escala CRITICAL → LOW do enunciado; uma API só é declarada deprecated após conferir a versão aplicável.
+
+A skill usa conceitos de linguagem, framework, banco e domínio na Fase 1 antes de escolher transformações. Assim, as mesmas instruções servem a Flask e Express. No Task Manager, que já possui camadas parciais, o playbook orienta melhorar os limites existentes. As três cópias foram validadas e comparadas por hash. A primeira execução real ocorreu no projeto 1, com invocação explícita de `$refactor-arch`; a sessão `01a0c6e5-7ffb-7831-b87d-2dec5f808a0b` parou após a auditoria e pediu confirmação. Após a confirmação do usuário, essa mesma sessão executou a Fase 3. O template foi reforçado e o catálogo ajustado à definição literal de CRITICAL durante a revisão; as três cópias foram sincronizadas.
+
+## Resultados
+
+### Projeto 1 — `code-smells-project`
+
+O relatório pré-refatoração está em [`reports/audit-project-1.md`](reports/audit-project-1.md), com **15 findings: 6 CRITICAL, 2 HIGH, 4 MEDIUM e 3 LOW**. Ele identifica os seis problemas P1-01 a P1-06 da análise manual. Nenhuma API deprecated foi confirmada. As referências de arquivo e linha apontam para o código original do commit `6d1ce62`.
+
+Antes, `app.py` registrava as rotas e incluía SQL administrativo; `controllers.py` misturava HTTP e regras de negócio; `models.py` misturava persistência e cálculo; `database.py` mantinha conexão global. Depois, `views.py` contém as rotas, `controllers.py` valida e coordena os fluxos, `models.py` concentra o acesso parametrizado aos dados, `database.py` gerencia a conexão por requisição, `config.py` lê o ambiente, `errors.py` define os erros esperados e `app.py` compõe a aplicação e centraliza o tratamento de erros.
+
+O teste de integração usa SQLite em diretório temporário. `python -m unittest discover -s tests -v` passou com **6 testes**: inicialização, todos os endpoints públicos originais, casos de erro, bloqueio das rotas administrativas, migração de senha, transação de pedido, listagem em uma consulta e resposta sanitizada a falha de banco. O boot por `create_app()` e o primeiro acesso ao banco passaram. Exemplos de respostas verificadas: `GET /health` → 200 sem segredo ou caminho do banco; `POST /produtos` válido → 201; `POST /pedidos` válido → 201; login inválido → 401; pedido inexistente em atualização de status → 404; `POST /admin/query` e `/admin/reset-db` → 404.
+
+Mudanças intencionais de contrato: as duas rotas administrativas foram removidas por permitirem SQL arbitrário e exclusão sem autorização; respostas de usuário e health não expõem credenciais; entradas inválidas são recusadas; atualização de pedido inexistente retorna 404. Usuários de exemplo com senhas conhecidas deixaram de ser criados. Bancos legados têm senhas convertidas para hash no primeiro acesso; faça backup antes de usar um banco existente. A extração de `config.py` foi acrescentada após a revisão independente da Fase 3.
+
+#### Checklist do projeto 1
+
+**Fase 1 — Análise**
+
+- [x] Linguagem detectada corretamente: Python.
+- [x] Framework detectado corretamente: Flask 3.1.1 declarado.
+- [x] Domínio da aplicação descrito corretamente: loja com produtos, usuários, pedidos e vendas.
+- [x] Número de arquivos analisados condiz com a realidade: quatro arquivos Python originais (`app.py`, `controllers.py`, `models.py`, `database.py`).
+
+**Fase 2 — Auditoria**
+
+- [x] Relatório segue o template definido nos arquivos de referência.
+- [x] Cada finding tem arquivo e linhas exatos do código original.
+- [x] Findings ordenados por severidade (CRITICAL → LOW).
+- [x] Mínimo de 5 findings identificados: 15.
+- [x] Detecção de APIs deprecated incluída: verificação feita; nenhuma confirmada.
+- [x] Skill pausou e pediu confirmação antes da Fase 3; o usuário autorizou depois.
+
+**Fase 3 — Refatoração**
+
+- [x] Estrutura segue MVC: `models.py`, `views.py`, `controllers.py`.
+- [x] Configuração extraída para `config.py` e variáveis de ambiente, sem credenciais hardcoded.
+- [x] Models abstraem acesso aos dados.
+- [x] Views/Routes separadas em `views.py`.
+- [x] Controllers concentram o fluxo da aplicação.
+- [x] Error handling centralizado em `app.py` com `APIError` em `errors.py`.
+- [x] Entry point claro em `app.py`.
+- [x] Aplicação inicia e inicializa o banco sem erros no teste isolado.
+- [x] Endpoints originais respondem conforme testes; as mudanças de segurança estão documentadas acima.
+
+Os projetos 2 e 3 ainda aguardam execução da skill, relatórios, refatoração e validação; seus checklists serão preenchidos após a comprovação de cada item. Também faltam commits e publicação do fork.
+
+## Como Executar
+
+Entre em cada subprojeto e invoque explicitamente `$refactor-arch` em uma sessão Codex. A skill deve apresentar as Fases 1 e 2 e aguardar confirmação específica antes da Fase 3. Para o projeto 1, instale `requirements.txt`, configure as variáveis opcionais de `.env.example`, execute `python app.py` e valide com `python -m unittest discover -s tests -v`. Use um banco SQLite separado para desenvolvimento e testes. O projeto 2 usa Node.js e `npm ci`; o projeto 3 usa Python e as dependências em `requirements.txt`. Os comandos completos de execução dos projetos 2 e 3 serão registrados após a validação respectiva.
