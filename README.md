@@ -578,8 +578,48 @@ Mudanças intencionais de contrato: relatório e exclusão retornam 403 sem `X-A
 - [x] Aplicação inicia sem erros em porta efêmera.
 - [x] Todos os endpoints originais responderam nos testes; mudanças de segurança estão documentadas.
 
-O projeto 3 ainda aguarda execução da skill, relatório, refatoração e validação. Também faltam o commit desta etapa e a publicação final do fork.
+### Projeto 3 — `task-manager-api`
+
+O relatório pré-refatoração está em [`reports/audit-project-3.md`](reports/audit-project-3.md), com **13 findings: 4 CRITICAL, 1 HIGH, 6 MEDIUM e 2 LOW**. Ele cobre P3-01 a P3-06 e confirmou duas famílias de API deprecated: `datetime.utcnow()` no Python 3.12 e `Query.get()` no SQLAlchemy 2. A sessão Codex `01a0cb5b-d36c-7213-ae37-98ba9efb8e02` executou `$refactor-arch`, analisou 15 arquivos Python e inventariou 22 regras de aplicação, depois parou até a confirmação explícita.
+
+A organização parcial original foi preservada. Os Blueprints em `routes/` ficaram como adaptadores HTTP; novos módulos em `controllers/` concentram validação, consultas e transações; `models/` mantém entidades e serialização segura; `config.py` lê o ambiente; `errors.py` centraliza falhas; `utils/datetime_utils.py` padroniza UTC compatível com as colunas SQLite existentes. A configuração SMTP deixou o código e o seed passou a usar hash seguro.
+
+A validação independente executou Python 3.12.13, Flask 3.0.0 e Flask-SQLAlchemy 3.1.1 via `uv`. `python -m unittest discover -s tests -v` passou com **6 testes e 0 falhas**. A suíte usa SQLite em memória, confirma exatamente 22 regras, exercita cada endpoint original em sucesso e erro, inicia um servidor HTTP real, verifica que nenhuma resposta expõe `password`, migra MD5 legado no login e limita queries nos antigos N+1.
+
+Mudanças intencionais de contrato: hashes de senha não são mais retornados; filtros numéricos inválidos recebem 400; erros inesperados recebem JSON sanitizado; debug é externo e desabilitado por padrão; ausência de configuração SMTP impede tentativa de autenticação. Permanecem como riscos conhecidos o token de login fictício, ausência de autorização real, CORS irrestrito e relatórios sem paginação.
+
+#### Checklist do projeto 3
+
+**Fase 1 — Análise**
+
+- [x] Linguagem detectada corretamente: Python 3.12.13 no runtime usado.
+- [x] Framework detectado corretamente: Flask 3.0.0 e Flask-SQLAlchemy 3.1.1 declarados e executados.
+- [x] Domínio descrito corretamente: usuários, tarefas, categorias e relatórios.
+- [x] Número de arquivos analisados condiz com a realidade: 15 arquivos Python originais.
+
+**Fase 2 — Auditoria**
+
+- [x] Relatório segue o template definido nas referências.
+- [x] Cada finding tem arquivo e linhas exatos do código original.
+- [x] Findings ordenados por severidade (CRITICAL → LOW).
+- [x] Mínimo de 5 findings identificado: 13.
+- [x] Detecção de APIs deprecated incluiu `datetime.utcnow()` e `Query.get()`.
+- [x] Skill pausou e pediu confirmação antes da Fase 3; o usuário autorizou depois.
+
+**Fase 3 — Refatoração**
+
+- [x] Estrutura parcial MVC foi preservada e completada com `controllers/`.
+- [x] Configuração extraída para `config.py` e `.env.example`, sem credenciais hardcoded.
+- [x] Models permanecem responsáveis pelas entidades e projeções públicas.
+- [x] Views/Routes separadas em `routes/`, sem persistência direta.
+- [x] Controllers concentram o fluxo da aplicação.
+- [x] Error handling centralizado em `errors.py`.
+- [x] Entry point e factory claros em `app.py`.
+- [x] Aplicação inicia por HTTP sem erros em teste isolado.
+- [x] Todos os 22 endpoints originais responderam em sucesso e erro representativo.
+
+Os três projetos estão refatorados e validados. Restam a revisão consolidada final, o commit desta etapa e a publicação do fork público.
 
 ## Como Executar
 
-Entre em cada subprojeto e invoque explicitamente `$refactor-arch` em uma sessão Codex. A skill deve apresentar as Fases 1 e 2 e aguardar confirmação específica antes da Fase 3. Para o projeto 1, instale `requirements.txt`, configure as variáveis opcionais de `.env.example`, execute `python app.py` e valide com `python -m unittest discover -s tests -v`. Use um banco SQLite separado para desenvolvimento e testes. No projeto 2, execute `npm ci`, defina `ADMIN_API_KEY` e `PAYMENT_GATEWAY_KEY`, rode `npm start` e valide com `npm test`; `api.http` mostra os corpos e o cabeçalho administrativo. O projeto 3 usa Python e as dependências em `requirements.txt`; seus comandos finais serão registrados após a validação.
+Entre em cada subprojeto e invoque explicitamente `$refactor-arch` em uma sessão Codex. A skill deve apresentar as Fases 1 e 2 e aguardar confirmação específica antes da Fase 3. Para o projeto 1, instale `requirements.txt`, configure as variáveis opcionais de `.env.example`, execute `python app.py` e valide com `python -m unittest discover -s tests -v`. Use um banco SQLite separado para desenvolvimento e testes. No projeto 2, execute `npm ci`, defina `ADMIN_API_KEY` e `PAYMENT_GATEWAY_KEY`, rode `npm start` e valide com `npm test`; `api.http` mostra os corpos e o cabeçalho administrativo. No projeto 3, instale `requirements.txt`, configure `.env.example`, execute `python seed.py`, rode `python app.py` e valide com `python -m unittest discover -s tests -v`.

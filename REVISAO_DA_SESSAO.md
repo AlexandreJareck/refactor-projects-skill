@@ -134,3 +134,17 @@ O projeto 3 continua sem invocação e sem autorização de Fase 3. O push perma
 ### Instrução atualizada para revisão independente
 
 > Leia o enunciado integral e revise todo o estado atual do repositório. Confirme as etapas históricas deste arquivo contra Git, os dois relatórios, as sessões indicadas, os READMEs e o código. Para os projetos 1 e 2, execute as suítes, verifique cada item marcado dos checklists e procure regressões, segredos, dados reais ou afirmações sem evidência. Confirme que `reports/audit-project-1.md` e `reports/audit-project-2.md` preservam linhas do código anterior às respectivas refatorações, que as severidades seguem literalmente o enunciado e que as pausas ocorreram antes das Fases 3. Classifique cada critério como atendido, pendente ou incorreto com arquivo e linha. Não execute a Fase 3 do projeto 3 e não publique o fork.
+
+## Quarta etapa — projeto 3
+
+A skill foi invocada explicitamente em `task-manager-api` na sessão Codex `01a0cb5b-d36c-7213-ae37-98ba9efb8e02`. A primeira tentativa de baseline encontrou restrições do sandbox e foi interrompida antes de produzir relatório. A mesma sessão foi retomada em modo somente leitura, recebeu a localização do runtime temporário e a evidência da linha de base já executada pela sessão principal, terminou a inspeção integral de 15 arquivos e inventariou 22 regras HTTP. A auditoria apresentou 13 findings — 4 CRITICAL, 1 HIGH, 6 MEDIUM e 2 LOW —, cobriu P3-01 a P3-06, verificou `datetime.utcnow()` e `Query.get()` como deprecated e parou no confirmation gate sem alterar arquivos.
+
+Depois da confirmação do usuário, o relatório original foi salvo em `reports/audit-project-3.md` e teve SHA-256 `08DE3EDE75E6F801F3AF870E2C7BF9AD580306B04E1AF23F5A17B2BD92F54F2F` antes da refatoração. A mesma sessão executou a Fase 3, preservando `models/`, `routes/`, `services/` e `utils/` e adicionando `controllers/`, `config.py`, `errors.py` e `utils/datetime_utils.py`. As rotas deixaram de acessar persistência; serializações não expõem hash; MD5 legado é migrado no login; APIs obsoletas e N+1 foram removidos; configuração e SMTP passaram para ambiente.
+
+A sessão principal revisou os arquivos e repetiu a suíte com SQLite em memória: 6 testes, 0 falhas. A matriz valida as 22 rotas em sucesso e erro, boot HTTP real, resposta sanitizada, migração de hash e limites de queries. O README da raiz e o do projeto registram a arquitetura, checklist, comandos, mudanças de contrato e riscos restantes.
+
+Os três projetos agora possuem auditoria, refatoração e validação. O próximo trabalho é a revisão consolidada dos três commits/relatórios/checklists, seguida de publicação em `origin/main` e verificação pública.
+
+### Instrução final para revisão independente
+
+> Leia integralmente o enunciado fornecido pelo usuário e revise independentemente todo o repositório. Use este arquivo apenas como índice e confirme cada alegação em Git, nos três relatórios, nos READMEs, nas três cópias da skill e no código. Execute as suítes dos três projetos em dados isolados; confira os 57 itens dos checklists, a correspondência dos achados manuais com as auditorias, as severidades literais, as linhas pré-refatoração, as pausas antes de cada Fase 3, a ausência de segredos e a preservação documentada dos contratos. Confirme que as três skills continuam idênticas e que não há artefatos gerados versionados. Classifique cada requisito como atendido, pendente ou incorreto com arquivo e linha. Não publique nem altere o repositório durante a revisão.
