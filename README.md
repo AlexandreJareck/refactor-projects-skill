@@ -628,7 +628,7 @@ Commits rastreáveis da implementação:
 - `76db01f` — auditoria e refatoração do projeto 2;
 - `6ac98d1` — auditoria e refatoração do projeto 3.
 
-Os três projetos estão refatorados, documentados e validados. A publicação e a verificação pública do fork são registradas após o push final.
+Os três projetos estão refatorados, documentados e validados. A entrega foi publicada em `origin/main` no fork público [AlexandreJareck/refactor-projects-skill](https://github.com/AlexandreJareck/refactor-projects-skill). A verificação anônima encontrou a `main` remota e obteve HTTP 200 no README publicado.
 
 ## Como Executar
 
