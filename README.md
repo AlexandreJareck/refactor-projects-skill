@@ -538,8 +538,48 @@ Mudanças intencionais de contrato: as duas rotas administrativas foram removida
 - [x] Aplicação inicia e inicializa o banco sem erros no teste isolado.
 - [x] Endpoints originais respondem conforme testes; as mudanças de segurança estão documentadas acima.
 
-Os projetos 2 e 3 ainda aguardam execução da skill, relatórios, refatoração e validação; seus checklists serão preenchidos após a comprovação de cada item. Também faltam commits e publicação do fork.
+### Projeto 2 — `ecommerce-api-legacy`
+
+O relatório pré-refatoração está em [`reports/audit-project-2.md`](reports/audit-project-2.md), com **10 findings: 5 CRITICAL, 0 HIGH, 3 MEDIUM e 2 LOW**. Ele cobre os seis problemas P2-01 a P2-06 da análise manual. A verificação das versões instaladas, Express 4.22.1 e sqlite3 5.1.7, não confirmou API deprecated usada pelo código. A sessão Codex `01a0c9df-2503-7823-8861-b945db324f5d` foi iniciada no subprojeto com `$refactor-arch`, exibiu as Fases 1 e 2 e parou até a confirmação explícita do usuário.
+
+Antes, `AppManager.js` concentrava banco, rotas, checkout e relatório, enquanto `utils.js` guardava credenciais e criptografia frágil. Depois, `src/routes/apiRoutes.js` define a interface HTTP, `src/controllers/` coordena checkout e administração, `src/models/LmsRepository.js` concentra SQLite, `src/config.js` exige configuração externa, `src/security.js` usa `scrypt`, `src/errors.js` centraliza falhas e `src/app.js` compõe e inicia a aplicação.
+
+`npm test` passou com **5 testes e 0 falhas**. A suíte inicia a aplicação em porta efêmera e SQLite em memória; cobre os quatro fluxos de `api.http`, os três endpoints originais em sucesso e erro, autorização administrativa, ausência de cartão e chave nos logs, hash de senha, relatório sem N+1, exclusão consistente e rollback quando a gravação do pagamento falha. Uma inicialização independente abriu o servidor e obteve 200 no relatório autenticado.
+
+Mudanças intencionais de contrato: relatório e exclusão retornam 403 sem `X-Admin-Key`; usuário inexistente retorna 404; a exclusão remove matrículas e pagamentos relacionados; pagamento recusado não cria usuário parcial; `pwd` é obrigatório; erros inesperados retornam `Erro interno`. Os métodos e caminhos originais foram preservados. `ADMIN_API_KEY` e `PAYMENT_GATEWAY_KEY` são obrigatórios e estão documentados em `.env.example`, sem valores reais.
+
+#### Checklist do projeto 2
+
+**Fase 1 — Análise**
+
+- [x] Linguagem detectada corretamente: JavaScript em Node.js 22.20.0.
+- [x] Framework detectado corretamente: Express 4.22.1 instalado.
+- [x] Domínio descrito corretamente: LMS com checkout, matrículas, pagamentos e relatório financeiro.
+- [x] Número de arquivos analisados condiz com a realidade: três arquivos-fonte originais.
+
+**Fase 2 — Auditoria**
+
+- [x] Relatório segue o template definido nas referências.
+- [x] Cada finding tem arquivo e linhas exatos do código original.
+- [x] Findings ordenados por severidade (CRITICAL → LOW).
+- [x] Mínimo de 5 findings identificado: 10.
+- [x] Detecção de APIs deprecated incluída: nenhuma confirmada para as versões instaladas.
+- [x] Skill pausou e pediu confirmação antes da Fase 3; o usuário autorizou depois.
+
+**Fase 3 — Refatoração**
+
+- [x] Estrutura de diretórios segue MVC para Express.
+- [x] Configuração extraída para `src/config.js`, sem credenciais hardcoded.
+- [x] Model/repository criado para abstrair SQLite.
+- [x] Routes separadas em `src/routes/apiRoutes.js`.
+- [x] Controllers concentram os fluxos da aplicação.
+- [x] Error handling centralizado em `src/errors.js`.
+- [x] Entry point claro em `src/app.js`.
+- [x] Aplicação inicia sem erros em porta efêmera.
+- [x] Todos os endpoints originais responderam nos testes; mudanças de segurança estão documentadas.
+
+O projeto 3 ainda aguarda execução da skill, relatório, refatoração e validação. Também faltam o commit desta etapa e a publicação final do fork.
 
 ## Como Executar
 
-Entre em cada subprojeto e invoque explicitamente `$refactor-arch` em uma sessão Codex. A skill deve apresentar as Fases 1 e 2 e aguardar confirmação específica antes da Fase 3. Para o projeto 1, instale `requirements.txt`, configure as variáveis opcionais de `.env.example`, execute `python app.py` e valide com `python -m unittest discover -s tests -v`. Use um banco SQLite separado para desenvolvimento e testes. O projeto 2 usa Node.js e `npm ci`; o projeto 3 usa Python e as dependências em `requirements.txt`. Os comandos completos de execução dos projetos 2 e 3 serão registrados após a validação respectiva.
+Entre em cada subprojeto e invoque explicitamente `$refactor-arch` em uma sessão Codex. A skill deve apresentar as Fases 1 e 2 e aguardar confirmação específica antes da Fase 3. Para o projeto 1, instale `requirements.txt`, configure as variáveis opcionais de `.env.example`, execute `python app.py` e valide com `python -m unittest discover -s tests -v`. Use um banco SQLite separado para desenvolvimento e testes. No projeto 2, execute `npm ci`, defina `ADMIN_API_KEY` e `PAYMENT_GATEWAY_KEY`, rode `npm start` e valide com `npm test`; `api.http` mostra os corpos e o cabeçalho administrativo. O projeto 3 usa Python e as dependências em `requirements.txt`; seus comandos finais serão registrados após a validação.

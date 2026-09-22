@@ -120,3 +120,17 @@ O checklist individual do projeto 1 e os resultados estão no README da raiz. Os
 ### Instrução atualizada para o revisor independente
 
 > Leia novamente o enunciado integral fornecido pelo usuário. Revise `REVISAO_DA_SESSAO.md`, o README, as três cópias de `refactor-arch`, `reports/audit-project-1.md`, o código e os testes do projeto 1. Compare cada critério de aceite e cada item marcado no checklist do projeto 1 com evidência executável; confira as severidades segundo o enunciado, o vínculo dos seis achados manuais com a auditoria e a pausa antes da Fase 3. Confirme que o relatório se refere às linhas anteriores à refatoração, que a configuração está separada, que os contratos HTTP alterados estão documentados e que todos os endpoints originais têm tratamento. Verifique Git e informe o que está atendido, pendente ou incorreto com arquivo e linha. Não execute as Fases 3 dos projetos 2 e 3 nem publique o fork.
+
+## Terceira etapa — projeto 2
+
+A skill foi invocada explicitamente no diretório `ecommerce-api-legacy` na sessão Codex `01a0c9df-2503-7823-8861-b945db324f5d`. As Fases 1 e 2 rodaram em sandbox somente leitura. A análise contou três arquivos-fonte, identificou Node.js 22.20.0, Express 4.22.1, sqlite3 5.1.7, SQLite em memória, o domínio LMS e os três endpoints. A linha de base executou os quatro exemplos de `api.http` e casos adicionais. A auditoria apresentou 10 findings, sendo 5 CRITICAL, 3 MEDIUM e 2 LOW, cobriu P2-01 a P2-06, não confirmou API deprecated e pediu confirmação antes de escrever.
+
+Depois da confirmação do usuário, a saída original foi salva em `reports/audit-project-2.md`, com referências às linhas anteriores à refatoração. A mesma sessão executou a Fase 3. `AppManager.js` e `utils.js` foram substituídos por rotas, controllers, repository/model, configuração, segurança e tratamento central de erros. As operações de checkout são transacionais; o relatório usa uma consulta com JOIN; exclusão usa integridade referencial; senhas usam `scrypt`; segredos são exigidos do ambiente; logs não recebem cartão ou chave; rotas administrativas exigem `X-Admin-Key`.
+
+A sessão principal revisou os arquivos e repetiu `npm test`: 5 testes, 0 falhas. Também iniciou o servidor em porta efêmera com configuração de teste e confirmou HTTP 200 no relatório autenticado. `git diff --check` não encontrou erro, e uma busca no código ativo não encontrou os antigos segredos literais, `AppManager`, `badCrypto`, `totalRevenue` ou `globalCache`. As mudanças intencionais de contrato estão no README do subprojeto e no README da raiz.
+
+O projeto 3 continua sem invocação e sem autorização de Fase 3. O push permanece pendente até a entrega completa.
+
+### Instrução atualizada para revisão independente
+
+> Leia o enunciado integral e revise todo o estado atual do repositório. Confirme as etapas históricas deste arquivo contra Git, os dois relatórios, as sessões indicadas, os READMEs e o código. Para os projetos 1 e 2, execute as suítes, verifique cada item marcado dos checklists e procure regressões, segredos, dados reais ou afirmações sem evidência. Confirme que `reports/audit-project-1.md` e `reports/audit-project-2.md` preservam linhas do código anterior às respectivas refatorações, que as severidades seguem literalmente o enunciado e que as pausas ocorreram antes das Fases 3. Classifique cada critério como atendido, pendente ou incorreto com arquivo e linha. Não execute a Fase 3 do projeto 3 e não publique o fork.
