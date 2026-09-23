@@ -1,4 +1,5 @@
 const sqlite3 = require('sqlite3');
+const { PAYMENT_STATUS } = require('../constants');
 
 class LmsRepository {
     constructor({ filename = ':memory:', db } = {}) {
@@ -33,7 +34,7 @@ class LmsRepository {
         await this.run('INSERT INTO users (name, email, pass) VALUES (?, ?, ?)', ['Leonan', 'leonan@fullcycle.com.br', seedPasswordHash]);
         await this.run("INSERT INTO courses (title, price, active) VALUES ('Clean Architecture', 997.00, 1), ('Docker', 497.00, 1)");
         await this.run('INSERT INTO enrollments (user_id, course_id) VALUES (1, 1)');
-        await this.run("INSERT INTO payments (enrollment_id, amount, status) VALUES (1, 997.00, 'PAID')");
+        await this.run('INSERT INTO payments (enrollment_id, amount, status) VALUES (1, 997.00, ?)', [PAYMENT_STATUS.PAID]);
     }
 
     findActiveCourse(courseId) {
@@ -53,7 +54,7 @@ class LmsRepository {
                 user = { id: inserted.lastID };
             }
             const enrollment = await this.run('INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)', [user.id, course.id]);
-            await this.run('INSERT INTO payments (enrollment_id, amount, status) VALUES (?, ?, ?)', [enrollment.lastID, course.price, 'PAID']);
+            await this.run('INSERT INTO payments (enrollment_id, amount, status) VALUES (?, ?, ?)', [enrollment.lastID, course.price, PAYMENT_STATUS.PAID]);
             await this.run("INSERT INTO audit_logs (action, created_at) VALUES (?, datetime('now'))", [`Checkout curso ${course.id} por ${user.id}`]);
             await this.run('COMMIT');
             return enrollment.lastID;

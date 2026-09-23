@@ -540,13 +540,15 @@ Mudanças intencionais de contrato: as duas rotas administrativas foram removida
 
 ### Projeto 2 — `ecommerce-api-legacy`
 
-O relatório pré-refatoração está em [`reports/audit-project-2.md`](reports/audit-project-2.md), com **10 findings: 5 CRITICAL, 0 HIGH, 3 MEDIUM e 2 LOW**. Ele cobre os seis problemas P2-01 a P2-06 da análise manual. A verificação das versões instaladas, Express 4.22.1 e sqlite3 5.1.7, não confirmou API deprecated usada pelo código. A sessão Codex `01a0c9df-2503-7823-8861-b945db324f5d` foi iniciada no subprojeto com `$refactor-arch`, exibiu as Fases 1 e 2 e parou até a confirmação explícita do usuário.
+O relatório pré-refatoração está em [`reports/audit-project-2.md`](reports/audit-project-2.md), com **15 findings: 5 CRITICAL, 1 HIGH, 6 MEDIUM e 3 LOW**. Ele cobre os seis problemas P2-01 a P2-06 da análise manual e achados adicionais reproduzidos em baseline isolada. A revisão confirmou que o pacote `sqlite3` 5.1.7 está deprecated e sem manutenção, embora nenhuma assinatura deprecated do Express usada pelo código tenha sido encontrada. A sessão histórica `01a0c9df-2503-7823-8861-b945db324f5d` executou a análise antes da refatoração, mas seu diretório de trabalho era a raiz do repositório. Para verificar a descoberta real da skill, a sessão somente leitura `01a0cc78-5105-7963-b0bb-4f9078217fbc` foi iniciada em `ecommerce-api-legacy` no commit pré-refatoração `6060111`, invocou `$refactor-arch`, leu os seis arquivos da skill local, executou as Fases 1 e 2 e parou no confirmation gate sem alterar o checkout.
 
-Antes, `AppManager.js` concentrava banco, rotas, checkout e relatório, enquanto `utils.js` guardava credenciais e criptografia frágil. Depois, `src/routes/apiRoutes.js` define a interface HTTP, `src/controllers/` coordena checkout e administração, `src/models/LmsRepository.js` concentra SQLite, `src/config.js` exige configuração externa, `src/security.js` usa `scrypt`, `src/errors.js` centraliza falhas e `src/app.js` compõe e inicia a aplicação.
+Antes, `AppManager.js` concentrava banco, rotas, checkout e relatório, enquanto `utils.js` guardava credenciais e criptografia frágil. Depois, `src/routes/apiRoutes.js` define a interface HTTP, `src/controllers/` coordena checkout e administração, `src/models/LmsRepository.js` concentra SQLite, `src/config.js` exige configuração externa, `src/constants.js` centraliza estados de pagamento, `src/security.js` usa `scrypt`, `src/errors.js` centraliza falhas e `src/app.js` compõe e inicia a aplicação.
 
 `npm test` passou com **5 testes e 0 falhas**. A suíte inicia a aplicação em porta efêmera e SQLite em memória; cobre os quatro fluxos de `api.http`, os três endpoints originais em sucesso e erro, autorização administrativa, ausência de cartão e chave nos logs, hash de senha, relatório sem N+1, exclusão consistente e rollback quando a gravação do pagamento falha. Uma inicialização independente abriu o servidor e obteve 200 no relatório autenticado.
 
 Mudanças intencionais de contrato: relatório e exclusão retornam 403 sem `X-Admin-Key`; usuário inexistente retorna 404; a exclusão remove matrículas e pagamentos relacionados; pagamento recusado não cria usuário parcial; `pwd` é obrigatório; erros inesperados retornam `Erro interno`. Os métodos e caminhos originais foram preservados. `ADMIN_API_KEY` e `PAYMENT_GATEWAY_KEY` são obrigatórios e estão documentados em `.env.example`, sem valores reais.
+
+Risco restante documentado: a refatoração manteve o driver `sqlite3` para preservar escopo e compatibilidade. A migração para um driver mantido deve ser feita em mudança dedicada, com repetição dos testes de transação, integridade e relatório.
 
 #### Checklist do projeto 2
 
@@ -562,8 +564,8 @@ Mudanças intencionais de contrato: relatório e exclusão retornam 403 sem `X-A
 - [x] Relatório segue o template definido nas referências.
 - [x] Cada finding tem arquivo e linhas exatos do código original.
 - [x] Findings ordenados por severidade (CRITICAL → LOW).
-- [x] Mínimo de 5 findings identificado: 10.
-- [x] Detecção de APIs deprecated incluída: nenhuma confirmada para as versões instaladas.
+- [x] Mínimo de 5 findings identificado: 15.
+- [x] Detecção de APIs deprecated incluída: pacote `sqlite3` deprecated; nenhuma assinatura deprecated do Express confirmada.
 - [x] Skill pausou e pediu confirmação antes da Fase 3; o usuário autorizou depois.
 
 **Fase 3 — Refatoração**
@@ -621,6 +623,23 @@ Mudanças intencionais de contrato: hashes de senha não são mais retornados; f
 ### Validação consolidada
 
 Na revisão final, as três suítes passaram novamente em dados isolados: projeto 1 com 6 testes, projeto 2 com 5 testes e projeto 3 com 6 testes. As três cópias de `refactor-arch` passaram no `quick_validate.py`; os seis arquivos de cada cópia têm hashes idênticos. Os três relatórios estão em `reports/`, e os 57 itens dos checklists individuais estão marcados com evidência. O Git não rastreia bancos, ambientes, `node_modules`, caches Python nem arquivos `.env`. A busca por valores sensíveis encontrou apenas exemplos declarados no playbook e valores exclusivos de testes.
+
+Evidência literal da última execução das suítes:
+
+```text
+code-smells-project
+Ran 6 tests
+OK
+
+ecommerce-api-legacy
+# tests 5
+# pass 5
+# fail 0
+
+task-manager-api
+Ran 6 tests
+OK
+```
 
 Commits rastreáveis da implementação:
 

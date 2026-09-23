@@ -34,4 +34,11 @@ valor padrão no código. Em shells POSIX, use `export NOME=valor` em vez de
 
 O código está separado em rotas Express, controladores de caso de uso e um
 repositório SQLite. A inicialização e a composição das dependências ficam em
-`src/app.js`, e os erros HTTP são convertidos em um único middleware.
+`src/app.js`, os estados de pagamento ficam em `src/constants.js` e os erros
+HTTP são convertidos em um único middleware.
+
+## Risco conhecido
+
+O driver `sqlite3` foi mantido para preservar o escopo desta refatoração, mas o
+pacote está deprecated e sem manutenção. A migração para um driver mantido deve
+ser feita separadamente, repetindo os testes de transação, integridade e relatório.

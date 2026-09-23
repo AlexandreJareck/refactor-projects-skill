@@ -123,7 +123,7 @@ O checklist individual do projeto 1 e os resultados estão no README da raiz. Os
 
 ## Terceira etapa — projeto 2
 
-A skill foi invocada explicitamente no diretório `ecommerce-api-legacy` na sessão Codex `01a0c9df-2503-7823-8861-b945db324f5d`. As Fases 1 e 2 rodaram em sandbox somente leitura. A análise contou três arquivos-fonte, identificou Node.js 22.20.0, Express 4.22.1, sqlite3 5.1.7, SQLite em memória, o domínio LMS e os três endpoints. A linha de base executou os quatro exemplos de `api.http` e casos adicionais. A auditoria apresentou 10 findings, sendo 5 CRITICAL, 3 MEDIUM e 2 LOW, cobriu P2-01 a P2-06, não confirmou API deprecated e pediu confirmação antes de escrever.
+A sessão histórica Codex `01a0c9df-2503-7823-8861-b945db324f5d` recebeu a invocação explícita de `$refactor-arch`, mas uma revisão posterior confirmou que seu diretório de trabalho era a raiz do repositório, não `ecommerce-api-legacy`. Ela ainda analisou os três arquivos-fonte do projeto, identificou Node.js 22.20.0, Express 4.22.1, sqlite3 5.1.7, SQLite em memória, o domínio LMS e os três endpoints. A linha de base executou os quatro exemplos de `api.http` e casos adicionais. A auditoria histórica apresentou 10 findings, cobriu P2-01 a P2-06 e pediu confirmação antes de escrever. A correção independente dessa limitação está registrada ao fim deste arquivo.
 
 Depois da confirmação do usuário, a saída original foi salva em `reports/audit-project-2.md`, com referências às linhas anteriores à refatoração. A mesma sessão executou a Fase 3. `AppManager.js` e `utils.js` foram substituídos por rotas, controllers, repository/model, configuração, segurança e tratamento central de erros. As operações de checkout são transacionais; o relatório usa uma consulta com JOIN; exclusão usa integridade referencial; senhas usam `scrypt`; segredos são exigidos do ambiente; logs não recebem cartão ou chave; rotas administrativas exigem `X-Admin-Key`.
 
@@ -156,3 +156,13 @@ As três suítes foram repetidas na mesma revisão: projeto 1 com 6 testes, proj
 `git ls-files` não encontrou bancos SQLite, `node_modules`, ambientes, caches Python, `.pyc` ou `.env`. A varredura de padrões sensíveis encontrou somente valores explicitamente fictícios em exemplos do playbook e testes. O histórico contém os commits `6060111`, `76db01f` e `6ac98d1`, um para cada etapa implementada. Antes do commit de fechamento, a árvore estava limpa.
 
 O commit de validação `489a391` foi enviado para `origin/main`. Uma consulta Git anônima, com helpers de credencial desabilitados, encontrou essa referência remota, e o README em `raw.githubusercontent.com` respondeu HTTP 200. Isso comprova que o fork estava público e continha a entrega no momento da verificação. Um commit documental posterior registra esta evidência e deve ser igualmente conferido após o push final.
+
+## Correções após a revisão independente
+
+A revisão final encontrou três lacunas de evidência e documentação: a sessão histórica do projeto 2 não tinha sido iniciada dentro do subprojeto; o relatório do projeto 1 respeitava a severidade, mas não o segundo critério de ordenação por caminho e linha; e o README resumia os testes sem conservar um trecho literal do resultado.
+
+Para corrigir a primeira lacuna sem tocar no código refatorado, foi criado um checkout isolado no commit pré-refatoração `6060111`. A sessão Codex `01a0cc78-5105-7963-b0bb-4f9078217fbc` foi iniciada com diretório de trabalho em `ecommerce-api-legacy`, invocou explicitamente `$refactor-arch`, descobriu e leu os seis arquivos de `.agents/skills/refactor-arch`, executou somente as Fases 1 e 2 em sandbox read-only e parou no confirmation gate. O checkout permaneceu limpo e a Fase 3 não foi autorizada nessa execução de verificação.
+
+A repetição ampliou a auditoria do projeto 2 para 15 findings — 5 CRITICAL, 1 HIGH, 6 MEDIUM e 3 LOW. Além dos seis sinais manuais, reproduziu o encerramento do processo com cartão numérico, o estado global mutável e erros assíncronos ignorados, e registrou que o pacote `sqlite3` está deprecated e sem manutenção. O relatório pré-refatoração foi complementado com esses achados; a manutenção do driver atual ficou documentada como risco residual que exige migração dedicada. O relatório do projeto 1 foi reordenado dentro de cada severidade por arquivo e linha, sem alterar seus achados.
+
+Por fim, as três suítes foram executadas novamente e seus totais literais foram acrescentados à seção “Validação consolidada” do README. As três cópias da skill foram revalidadas e comparadas antes do commit de correção.

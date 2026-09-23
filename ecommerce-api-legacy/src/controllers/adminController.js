@@ -1,4 +1,5 @@
 const { HttpError } = require('../errors');
+const { PAYMENT_STATUS } = require('../constants');
 
 function createAdminController({ repository }) {
     return {
@@ -9,7 +10,7 @@ function createAdminController({ repository }) {
                 if (!report.has(row.id)) report.set(row.id, { course: row.course, revenue: 0, students: [] });
                 if (row.enrollment_id === null) continue;
                 const course = report.get(row.id);
-                if (row.status === 'PAID') course.revenue += row.amount;
+                if (row.status === PAYMENT_STATUS.PAID) course.revenue += row.amount;
                 course.students.push({ student: row.student, paid: row.amount || 0 });
             }
             return [...report.values()];

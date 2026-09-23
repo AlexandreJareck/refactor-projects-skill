@@ -42,12 +42,12 @@ Os seis IDs P1-01 a P1-06 da seção **Análise Manual** do README da raiz conti
 - Recommendation: Remover o endpoint de SQL arbitrário e oferecer somente operações administrativas específicas e protegidas, se necessárias.
 - Manual-analysis match: P1-01
 
-### A05 [CRITICAL] Senhas devolvidas pela API
+### A04 [CRITICAL] Senhas armazenadas sem hash próprio para senhas
 
-- File: `models.py:72-86`; `models.py:89-102`
-- Evidence: As funções de listagem e busca de usuários incluem `senha` nos objetos devolvidos aos controladores.
-- Impact: As respostas de `/usuarios` e `/usuarios/<int:id>` expõem as senhas armazenadas.
-- Recommendation: Usar uma representação pública de usuário que sempre exclua o campo de senha.
+- File: `database.py:75-82`; `models.py:109-110`; `models.py:122-130`
+- Evidence: `criar_usuario` grava a senha recebida diretamente; o login a compara diretamente na consulta; os usuários de exemplo também são inseridos com senhas literais.
+- Impact: O acesso aos registros do banco revela senhas utilizáveis.
+- Recommendation: Aplicar uma função de hash específica para senhas com sal, migrar registros existentes e adaptar login e dados de exemplo.
 - Manual-analysis match: P1-02
 
 ### A06 [CRITICAL] SQL montado com entradas do cliente
@@ -58,12 +58,12 @@ Os seis IDs P1-01 a P1-06 da seção **Análise Manual** do README da raiz conti
 - Recommendation: Parametrizar todos os valores e montar em código apenas a estrutura permitida das consultas.
 - Manual-analysis match: additional finding
 
-### A04 [CRITICAL] Senhas armazenadas sem hash próprio para senhas
+### A05 [CRITICAL] Senhas devolvidas pela API
 
-- File: `database.py:75-82`; `models.py:109-110`; `models.py:122-130`
-- Evidence: `criar_usuario` grava a senha recebida diretamente; o login a compara diretamente na consulta; os usuários de exemplo também são inseridos com senhas literais.
-- Impact: O acesso aos registros do banco revela senhas utilizáveis.
-- Recommendation: Aplicar uma função de hash específica para senhas com sal, migrar registros existentes e adaptar login e dados de exemplo.
+- File: `models.py:72-86`; `models.py:89-102`
+- Evidence: As funções de listagem e busca de usuários incluem `senha` nos objetos devolvidos aos controladores.
+- Impact: As respostas de `/usuarios` e `/usuarios/<int:id>` expõem as senhas armazenadas.
+- Recommendation: Usar uma representação pública de usuário que sempre exclua o campo de senha.
 - Manual-analysis match: P1-02
 
 ### A07 [HIGH] Conexão SQLite global compartilhada
@@ -98,14 +98,6 @@ Os seis IDs P1-01 a P1-06 da seção **Análise Manual** do README da raiz conti
 - Recommendation: Validar cada item e exigir IDs e quantidades inteiros válidos, com quantidade maior que zero, antes das gravações.
 - Manual-analysis match: additional finding
 
-### A09 [MEDIUM] Consultas N+1 na listagem de pedidos
-
-- File: `models.py:174-192`; `models.py:206-224`
-- Evidence: As duas funções de listagem consultam itens dentro do loop de pedidos e produtos dentro do loop de itens.
-- Impact: O número de consultas cresce com a quantidade de pedidos e itens.
-- Recommendation: Buscar itens e produtos por junção ou em lotes e agrupar os resultados.
-- Manual-analysis match: P1-03
-
 ### A12 [MEDIUM] Atualização de status aceita pedido inexistente
 
 - File: `controllers.py:237-252`; `models.py:275-283`
@@ -113,6 +105,14 @@ Os seis IDs P1-01 a P1-06 da seção **Análise Manual** do README da raiz conti
 - Impact: A API informa que uma alteração ocorreu mesmo quando não há pedido correspondente.
 - Recommendation: Verificar o resultado da atualização e devolver resposta de não encontrado quando nenhuma linha for alterada.
 - Manual-analysis match: additional finding
+
+### A09 [MEDIUM] Consultas N+1 na listagem de pedidos
+
+- File: `models.py:174-192`; `models.py:206-224`
+- Evidence: As duas funções de listagem consultam itens dentro do loop de pedidos e produtos dentro do loop de itens.
+- Impact: O número de consultas cresce com a quantidade de pedidos e itens.
+- Recommendation: Buscar itens e produtos por junção ou em lotes e agrupar os resultados.
+- Manual-analysis match: P1-03
 
 ### A13 [LOW] Diagnósticos com `print` nas rotas
 

@@ -2,117 +2,145 @@
 
 ## Project analysis
 
-- Language and framework: Node.js 22.20.0; Express `^4.18.2` declarado em `package.json` e **4.22.1 instalado**, confirmado por `npm ls`.
-- Database and domain: sqlite3 `^5.1.6` declarado e **5.1.7 instalado**; SQLite `:memory:` com seeds de usuários, cursos, matrículas e pagamentos. O domínio é uma API de LMS com checkout e relatório financeiro.
-- Architecture and entry point: `src/app.js` cria o Express, inicializa `AppManager` e abre a porta 3000. `src/AppManager.js` concentra banco, regras de negócio e rotas; `src/utils.js` contém configuração e utilitários.
-- Source files analyzed: **3** arquivos de código fonte inspecionados integralmente (`src/app.js`, `src/AppManager.js`, `src/utils.js`). A contagem exclui dependências, arquivos gerados, testes, documentação e arquivos da skill.
+- Language and framework: Node.js 22.20.0; Express `^4.18.2` declarado em `package.json` e 4.22.1 instalado.
+- Database and domain: sqlite3 `^5.1.6` declarado e 5.1.7 instalado; SQLite `:memory:` com usuários, cursos, matrículas e pagamentos. O domínio é uma API de LMS com checkout e relatório financeiro.
+- Architecture and entry point: `src/app.js` cria o Express, inicializa `AppManager` e abre a porta 3000. `src/AppManager.js` concentra banco, regras e rotas; `src/utils.js` contém configuração e utilitários.
+- Source files analyzed: 3 — `src/app.js`, `src/AppManager.js` e `src/utils.js`, no estado anterior à refatoração do commit `6060111`.
 - Original endpoints: `POST /api/checkout`; `GET /api/admin/financial-report`; `DELETE /api/users/:id`.
-- Reproduzibilidade da linha de base: em um processo Node novo, instanciei `AppManager`, executei `initDb()` e `setupRoutes(app)` em uma instância Express, e usei uma porta efêmera em `127.0.0.1`. Cada execução começa com SQLite isolado em memória. Executei, na ordem, os quatro pedidos de `api.http`; suprimi a saída do log que contém cartão e chave.
-
-| Pedido, na ordem de `api.http` | Status | Resposta | Contagens após o pedido: usuários / matrículas / pagamentos / auditorias |
-|---|---:|---|---|
-| Seed, antes dos pedidos | — | — | 1 / 1 / 1 / 0 |
-| Checkout aprovado, curso 2 | 200 | `{"msg":"Sucesso","enrollment_id":2}` | 2 / 2 / 2 / 1 |
-| Pagamento recusado, curso 1 | 400 | `Pagamento recusado` | 3 / 2 / 2 / 1 |
-| Relatório financeiro | 200 | Clean Architecture: receita 997, Leonan; Docker: receita 497, Guilherme | 3 / 2 / 2 / 1 |
-| Exclusão de `/api/users/1` | 200 | Mensagem informando que matrículas e pagamentos permaneceram | 2 / 2 / 2 / 1 |
-
-No mesmo banco isolado, checkout com apenas `usr` retornou **400** (`Bad Request`); curso `999` com os demais campos presentes retornou **404** (`Curso não encontrado`); `DELETE /api/users/999` retornou **200**, mesmo sem usuário excluído. Após excluir o usuário 1, o relatório ainda mostrou receita 997 e o aluno `Unknown`.
-
-Também injetei, somente em outra instância SQLite em memória, um gatilho que rejeita a inserção do novo pagamento. O checkout retornou **500** (`Erro Pagamento`), mas deixou **1 usuário e 1 matrícula novos, sem pagamento novo**. Isso confirma o efeito da ausência de transação.
+- Baseline isolada: uma instância nova do processo, Express em porta efêmera e SQLite em memória. Relatório inicial retornou 200; checkout incompleto, 400; curso ausente, 404; pagamento recusado, 400; checkout aprovado, 200. Exclusão de usuário inexistente e existente retornou 200; a exclusão existente deixou registros órfãos e o relatório passou a exibir `Unknown`. Um cartão numérico provocou `TypeError` não tratado e encerrou o servidor. A saída que continha cartão e chave foi suprimida.
 
 ## Summary
 
-CRITICAL: **5** | HIGH: **0** | MEDIUM: **3** | LOW: **2** | Total: **10**
+CRITICAL: **5** | HIGH: **1** | MEDIUM: **6** | LOW: **3** | Total: **15**
 
-Deprecated APIs: **none verified**. Para as versões instaladas, conferi as chamadas usadas na [referência oficial do Express 4](https://expressjs.com/en/4x/api/), na [API oficial do node-sqlite3](https://github.com/TryGhost/node-sqlite3/wiki/API) e na [documentação oficial de `serialize`](https://github.com/TryGhost/node-sqlite3/wiki/Control-Flow). Não há uso demonstrado de assinatura de API marcada como deprecated nessas chamadas. Avisos sobre dependências transitivas no lockfile não foram tratados como APIs usadas pelo código.
+Deprecated APIs: **AUD-007** identifica o ciclo de vida deprecated e sem manutenção do pacote `sqlite3`, confirmado no [repositório oficial do node-sqlite3](https://github.com/TryGhost/node-sqlite3). Não foi encontrada uma assinatura deprecated do Express usada pelo código.
 
 ## Findings
 
-### A-01 [CRITICAL] God Class reúne todas as responsabilidades
+### AUD-001 [CRITICAL] God Class reúne todas as responsabilidades
 
 - File: `src/AppManager.js:4-139`
-- Evidence: A mesma classe cria e popula tabelas, acessa o banco, executa o checkout, monta o relatório e registra as três rotas e respostas HTTP.
-- Impact: Viola completamente a separação de responsabilidades do exemplo de *God Class* no enunciado; mudanças em qualquer fluxo exigem alterar e testar a mesma classe.
-- Recommendation: Separar rotas, controladores de fluxo e modelos de persistência por domínio; manter a composição no ponto de entrada.
+- Evidence: A mesma classe cria e popula tabelas, acessa o banco, executa checkout, monta relatório e registra rotas e respostas HTTP.
+- Impact: O colapso de roteamento, persistência e regras complexas torna qualquer mudança ampla e arriscada.
+- Recommendation: Separar rotas, controladores de fluxo, serviços e persistência; manter a composição no ponto de entrada.
 - Manual-analysis match: P2-02
 
-### A-02 [CRITICAL] Cartão completo e chave de pagamento no log
+### AUD-002 [CRITICAL] Senha fraca e credencial de seed em texto claro
+
+- File: `src/AppManager.js:18,68-69`; `src/utils.js:17-22`
+- Evidence: O seed grava `123`, e `badCrypto` apenas repete Base64 e trunca o resultado a dez caracteres.
+- Impact: Senhas podem ser recuperadas ou colidir e uma credencial utilizável é distribuída no código.
+- Recommendation: Usar hash específico para senhas com salt e parâmetros apropriados; remover senha conhecida do seed.
+- Manual-analysis match: additional finding
+
+### AUD-003 [CRITICAL] Cartão completo e chave de pagamento no log
 
 - File: `src/AppManager.js:45`
-- Evidence: O `console.log` interpola o número integral recebido em `card` e `config.paymentGatewayKey`. A execução da linha de base acionou esse log; seu conteúdo foi suprimido na coleta.
-- Impact: Dados de pagamento e material de credencial podem ser expostos a quem acessa logs.
-- Recommendation: Remover cartão e chave dos logs; registrar apenas identificadores seguros e eventos necessários.
+- Evidence: O `console.log` interpola o cartão integral e `config.paymentGatewayKey`; a baseline acionou esse caminho e suprimiu o conteúdo.
+- Impact: Dados de pagamento e credenciais podem ficar expostos a operadores e coletores de logs.
+- Recommendation: Remover cartão e chave dos logs e registrar apenas eventos e identificadores seguros.
 - Manual-analysis match: P2-01
 
-### A-03 [CRITICAL] Relatório administrativo e exclusão sem autorização
+### AUD-004 [CRITICAL] Operações administrativas e destrutivas sem autorização
 
-- File: `src/AppManager.js:80,131-135`
-- Evidence: As rotas de relatório administrativo e exclusão de usuário são registradas sem middleware ou verificação de identidade ou permissão. Chamadas sem credenciais receberam 200 na linha de base.
-- Impact: Qualquer cliente com acesso à API pode consultar o relatório e solicitar exclusões.
-- Recommendation: Exigir autenticação e autorização administrativa antes desses handlers e testar acesso permitido e negado.
+- File: `src/AppManager.js:80-129,131-137`
+- Evidence: Relatório financeiro e exclusão de usuário são registrados sem autenticação ou autorização.
+- Impact: Qualquer cliente alcançável pode consultar informações financeiras ou apagar usuários.
+- Recommendation: Exigir autorização administrativa antes dos handlers e testar acessos permitido e negado.
 - Manual-analysis match: additional finding
 
-### A-04 [CRITICAL] Credenciais embutidas na configuração
+### AUD-005 [CRITICAL] Credenciais embutidas na configuração
 
-- File: `src/utils.js:2-4`
-- Evidence: O código contém valores literais para usuário e senha de banco e chave de gateway; a chave também é referenciada no checkout. A validade externa desses valores não foi verificada.
-- Impact: Valores de credencial são distribuídos com o código e difíceis de substituir ou revogar por ambiente.
-- Recommendation: Ler segredos de variáveis de ambiente ou de um gerenciador de segredos e retirar os valores do código e dos logs.
+- File: `src/utils.js:1-6`
+- Evidence: Usuário, senha do banco e chave do gateway são literais no código.
+- Impact: Segredos são distribuídos com a aplicação e não podem ser rotacionados por ambiente com segurança.
+- Recommendation: Carregar segredos de ambiente ou gerenciador de segredos e falhar claramente quando ausentes.
 - Manual-analysis match: additional finding
 
-### A-05 [CRITICAL] Hash de senha reversível e truncado
+### AUD-006 [HIGH] Cache global mutável compartilhado
 
-- File: `src/utils.js:17-22`
-- Evidence: `badCrypto` repete Base64 da senha e retorna apenas dez caracteres; `src/AppManager.js:68-69` usa o resultado como senha armazenada.
-- Impact: O valor não oferece proteção adequada para senhas e pode gerar colisões.
-- Recommendation: Usar uma biblioteca de hash específica para senhas, com salt e parâmetros apropriados, e planejar a migração dos registros existentes.
+- File: `src/utils.js:9-15`
+- Evidence: `globalCache` é um objeto mutável no escopo do módulo, acessível por todas as requisições e instâncias.
+- Impact: Estado pode vazar entre requisições e testes, produzir concorrência incorreta e crescer sem política de expiração.
+- Recommendation: Remover o estado global ou encapsular cache com ciclo de vida, limites e invalidação explícitos.
 - Manual-analysis match: additional finding
 
-### A-06 [MEDIUM] Checkout grava registros relacionados sem transação
+### AUD-007 [MEDIUM] Driver SQLite deprecated e sem manutenção
 
-- File: `src/AppManager.js:50-61`
-- Evidence: Matrícula, pagamento e auditoria são inseridos separadamente; o erro da auditoria é ignorado. Com falha injetada no pagamento em banco isolado, a resposta foi 500 e a matrícula permaneceu.
-- Impact: Falhas intermediárias deixam registros parciais; a auditoria pode falhar mesmo quando a resposta informa sucesso.
-- Recommendation: Executar as gravações relacionadas em transação, fazer rollback em qualquer erro e responder somente após sua confirmação.
+- File: `package.json:11`; `src/AppManager.js:1`
+- Evidence: A aplicação depende diretamente de `sqlite3`; o repositório oficial do pacote o declara deprecated/unmaintained.
+- Impact: Correções futuras de compatibilidade e segurança deixam de ser garantidas pelo mantenedor.
+- Recommendation: Planejar migração para um driver SQLite mantido, com testes de compatibilidade e transação antes da troca.
+- Manual-analysis match: additional finding
+
+### AUD-012 [MEDIUM] Exclusão deixa órfãos e confirma ausência como sucesso
+
+- File: `src/AppManager.js:12-16,131-136`
+- Evidence: Não há chaves estrangeiras com cascata; o handler exclui só `users`, ignora erro e `changes`. A baseline confirmou 200 para ID inexistente e registros órfãos para ID existente.
+- Impact: A API relata sucesso incorreto e o relatório perde a identidade do aluno.
+- Recommendation: Aplicar integridade referencial e transação, tratar erro e devolver 404 quando nenhuma linha for alterada.
+- Manual-analysis match: additional finding
+
+### AUD-008 [MEDIUM] Tipo inesperado de cartão derruba o processo
+
+- File: `src/AppManager.js:29-35,45-46`
+- Evidence: A validação aceita qualquer valor truthy; depois chama `startsWith` diretamente. Na baseline, cartão numérico produziu `TypeError` não tratado e encerrou o servidor.
+- Impact: Uma entrada HTTP malformada pode causar indisponibilidade do processo.
+- Recommendation: Validar tipos e formato antes do uso e encaminhar falhas ao tratamento central de erros.
+- Manual-analysis match: additional finding
+
+### AUD-009 [MEDIUM] Checkout grava registros relacionados sem transação
+
+- File: `src/AppManager.js:50-61,68-71`
+- Evidence: Usuário, matrícula, pagamento e auditoria são gravados em callbacks separados, sem `BEGIN`, `COMMIT` e `ROLLBACK`.
+- Impact: Falhas intermediárias deixam dados parciais e inconsistentes.
+- Recommendation: Executar todo o checkout em transação e confirmar a resposta somente após o commit.
 - Manual-analysis match: P2-04
 
-### A-07 [MEDIUM] Relatório executa consultas N+1
+### AUD-010 [MEDIUM] Relatório executa consultas N+1
 
 - File: `src/AppManager.js:89-106`
-- Evidence: Para cada curso há uma consulta de matrículas e, para cada matrícula, consultas adicionais de usuário e pagamento. Com dois cursos e duas matrículas, o fluxo faz sete consultas de leitura.
-- Impact: A quantidade de consultas cresce com os cursos e alunos, elevando a latência do relatório.
-- Recommendation: Buscar os dados com `JOIN` e agregação ou com consultas em lote, mantendo a estrutura da resposta.
+- Evidence: Para cada curso busca matrículas e, para cada matrícula, consulta usuário e pagamento separadamente.
+- Impact: O número de consultas cresce com cursos e alunos, aumentando a latência.
+- Recommendation: Usar `JOIN` e agregação ou consultas em lote, preservando a estrutura da resposta.
 - Manual-analysis match: P2-03
 
-### A-08 [MEDIUM] Exclusão deixa registros órfãos e confirma ausência como sucesso
+### AUD-011 [MEDIUM] Erros assíncronos são ignorados
 
-- File: `src/AppManager.js:131-135`
-- Evidence: O handler exclui apenas `users`, ignora `err` e não verifica `changes`. Após excluir o usuário 1, matrícula e pagamento permaneceram; excluir o usuário 999 também retornou 200.
-- Impact: O relatório passa a mostrar `Unknown` para uma matrícula existente, e o cliente não consegue distinguir exclusão efetiva de usuário inexistente ou falha de banco.
-- Recommendation: Definir a política de retenção de matrículas e pagamentos, aplicar integridade referencial ou uma operação transacional compatível, tratar erro e verificar linhas afetadas.
+- File: `src/AppManager.js:92-106`
+- Evidence: Callbacks do relatório não verificam `err`, e o fluxo usa resultados como se as consultas sempre tivessem êxito.
+- Impact: Falhas de banco podem gerar exceção, resposta parcial ou requisição sem término previsível.
+- Recommendation: Propagar todos os erros ao middleware central e responder apenas após concluir todas as operações.
 - Manual-analysis match: additional finding
 
-### A-09 [LOW] Importação sem uso
+### AUD-013 [LOW] Utilitário e importação sem uso
 
-- File: `src/AppManager.js:2`
-- Evidence: `totalRevenue` é importado, mas não é referenciado na classe.
-- Impact: Sugere uma dependência inexistente e acrescenta ruído à leitura.
-- Recommendation: Remover a importação não usada.
+- File: `src/AppManager.js:2`; `src/utils.js:10,25`
+- Evidence: `totalRevenue` é importado, mas não usado; o `globalCache` também não participa de um fluxo funcional conhecido.
+- Impact: O código sugere dependências e comportamentos inexistentes e aumenta o ruído de manutenção.
+- Recommendation: Remover código morto e manter apenas utilitários com consumidor identificado.
 - Manual-analysis match: P2-06
 
-### A-10 [LOW] Nomes locais pouco descritivos no checkout
+### AUD-014 [LOW] Estados e senha padrão como valores mágicos
+
+- File: `src/AppManager.js:21,46-48,68,108`
+- Evidence: `PAID`, `DENIED` e a senha padrão são repetidos como literais no fluxo e no seed.
+- Impact: Regras de domínio ficam dispersas e sujeitas a divergência.
+- Recommendation: Centralizar estados de pagamento e retirar a senha padrão conhecida.
+- Manual-analysis match: additional finding
+
+### AUD-015 [LOW] Nomes locais pouco descritivos no checkout
 
 - File: `src/AppManager.js:29-33`
-- Evidence: Os valores de entrada são atribuídos a `u`, `e`, `p`, `cid` e `cc`.
-- Impact: Dificulta acompanhar e revisar o fluxo de pagamento.
-- Recommendation: Usar nomes que indiquem usuário, email, senha, identificador do curso e cartão.
+- Evidence: Entradas são atribuídas a `u`, `e`, `p`, `cid` e `cc`.
+- Impact: O fluxo de pagamento fica mais difícil de revisar e manter.
+- Recommendation: Usar nomes que expressem usuário, email, senha, curso e cartão.
 - Manual-analysis match: P2-05
 
 ## Proposed MVC change
 
-Separar o registro das rotas Express, a coordenação do checkout e do relatório, e o acesso SQLite em módulos de rota, controlador e modelo. Centralizar tratamento de erros e configuração; adicionar autorização às rotas sensíveis e transação ao checkout. Preservar os contratos dos três endpoints quando compatíveis com as correções de segurança e documentar qualquer mudança intencional.
+Separar rotas Express, coordenação de checkout e administração e acesso SQLite em módulos de rota, controlador e modelo/repository. Centralizar tratamento de erros, configuração e constantes; adicionar autorização às rotas sensíveis e transação ao checkout. Preservar os contratos dos três endpoints quando compatíveis com as correções e documentar mudanças intencionais. Planejar separadamente a migração do driver SQLite deprecated.
 
 ## Confirmation gate
 
-Phase 2 complete. Confirm Phase 3 before any file is written or changed.
+Phase 2 complete. **Confirm Phase 3 before any file is written or changed.**
