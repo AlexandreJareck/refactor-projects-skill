@@ -637,7 +637,7 @@ ecommerce-api-legacy
 # fail 0
 
 task-manager-api
-Ran 6 tests
+Ran 7 tests
 OK
 ```
 
