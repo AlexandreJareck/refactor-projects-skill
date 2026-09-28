@@ -14,7 +14,7 @@ A aplicação sobe em `http://localhost:5000`. O `seed.py` popula o banco SQLite
 
 ## Configuração e validação após a refatoração
 
-Use `.env.example` como referência. `TASK_MANAGER_DATABASE_URI` seleciona o banco, `TASK_MANAGER_SECRET_KEY` fornece o segredo da aplicação e `TASK_MANAGER_DEBUG` controla o debug. As variáveis `TASK_MANAGER_SMTP_*` configuram notificações; sem elas, o serviço não tenta autenticar nem enviar email. Nenhuma credencial possui valor literal no código.
+Use `.env.example` como referência. `TASK_MANAGER_DATABASE_URI` seleciona o banco, `TASK_MANAGER_SECRET_KEY` fornece o segredo da aplicação e `TASK_MANAGER_DEBUG` controla o debug. A chave é obrigatória, deve ter pelo menos 32 caracteres e precisa ser definida antes de executar `seed.py` ou `app.py`; a aplicação interrompe a inicialização quando ela está ausente ou fraca. As variáveis `TASK_MANAGER_SMTP_*` configuram notificações; sem elas, o serviço não tenta autenticar nem enviar email. Nenhuma credencial possui valor literal no código.
 
 A estrutura parcial original foi preservada. As rotas em `routes/` traduzem HTTP, os módulos em `controllers/` concentram validação e fluxo, `models/` mantém as entidades, `config.py` lê o ambiente e `errors.py` centraliza respostas de erro. Execute a validação com:
 

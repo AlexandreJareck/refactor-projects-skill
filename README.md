@@ -586,7 +586,7 @@ O relatório pré-refatoração está em [`reports/audit-project-3.md`](reports/
 
 A organização parcial original foi preservada. Os Blueprints em `routes/` ficaram como adaptadores HTTP; novos módulos em `controllers/` concentram validação, consultas e transações; `models/` mantém entidades e serialização segura; `config.py` lê o ambiente; `errors.py` centraliza falhas; `utils/datetime_utils.py` padroniza UTC compatível com as colunas SQLite existentes. A configuração SMTP deixou o código e o seed passou a usar hash seguro.
 
-A validação independente executou Python 3.12.13, Flask 3.0.0 e Flask-SQLAlchemy 3.1.1 via `uv`. `python -m unittest discover -s tests -v` passou com **6 testes e 0 falhas**. A suíte usa SQLite em memória, confirma exatamente 22 regras, exercita cada endpoint original em sucesso e erro, inicia um servidor HTTP real, verifica que nenhuma resposta expõe `password`, migra MD5 legado no login e limita queries nos antigos N+1.
+A validação independente executou Python 3.12.13, Flask 3.0.0 e Flask-SQLAlchemy 3.1.1 via `uv`. `python -m unittest discover -s tests -v` passou com **7 testes e 0 falhas**. A suíte usa SQLite em memória, confirma exatamente 22 regras, exercita cada endpoint original em sucesso e erro, inicia um servidor HTTP real, verifica que nenhuma resposta expõe `password`, migra MD5 legado no login, limita queries nos antigos N+1 e comprova que a aplicação recusa uma `TASK_MANAGER_SECRET_KEY` ausente, vazia ou com menos de 32 caracteres.
 
 Mudanças intencionais de contrato: hashes de senha não são mais retornados; filtros numéricos inválidos recebem 400; erros inesperados recebem JSON sanitizado; debug é externo e desabilitado por padrão; ausência de configuração SMTP impede tentativa de autenticação. Permanecem como riscos conhecidos o token de login fictício, ausência de autorização real, CORS irrestrito e relatórios sem paginação.
 
@@ -611,7 +611,7 @@ Mudanças intencionais de contrato: hashes de senha não são mais retornados; f
 **Fase 3 — Refatoração**
 
 - [x] Estrutura parcial MVC foi preservada e completada com `controllers/`.
-- [x] Configuração extraída para `config.py` e `.env.example`, sem credenciais hardcoded.
+- [x] Configuração extraída para `config.py` e `.env.example`, sem credenciais hardcoded; o startup exige `TASK_MANAGER_SECRET_KEY` com pelo menos 32 caracteres.
 - [x] Models permanecem responsáveis pelas entidades e projeções públicas.
 - [x] Views/Routes separadas em `routes/`, sem persistência direta.
 - [x] Controllers concentram o fluxo da aplicação.
@@ -622,7 +622,7 @@ Mudanças intencionais de contrato: hashes de senha não são mais retornados; f
 
 ### Validação consolidada
 
-Na revisão final, as três suítes passaram novamente em dados isolados: projeto 1 com 6 testes, projeto 2 com 5 testes e projeto 3 com 6 testes. As três cópias de `refactor-arch` passaram no `quick_validate.py`; os seis arquivos de cada cópia têm hashes idênticos. Os três relatórios estão em `reports/`, e os 57 itens dos checklists individuais estão marcados com evidência. O Git não rastreia bancos, ambientes, `node_modules`, caches Python nem arquivos `.env`. A busca por valores sensíveis encontrou apenas exemplos declarados no playbook e valores exclusivos de testes.
+Na revisão final, as três suítes passaram novamente em dados isolados: projeto 1 com 6 testes, projeto 2 com 5 testes e projeto 3 com 7 testes. As três cópias de `refactor-arch` passaram no `quick_validate.py`; os seis arquivos de cada cópia têm hashes idênticos. Os três relatórios estão em `reports/`, e os 57 itens dos checklists individuais estão marcados com evidência. O Git não rastreia bancos, ambientes, `node_modules`, caches Python nem arquivos `.env`. A busca por valores sensíveis encontrou apenas exemplos declarados no playbook e valores exclusivos de testes.
 
 Evidência literal da última execução das suítes:
 
@@ -651,4 +651,4 @@ Os três projetos estão refatorados, documentados e validados. A entrega foi pu
 
 ## Como Executar
 
-Entre em cada subprojeto e invoque explicitamente `$refactor-arch` em uma sessão Codex. A skill deve apresentar as Fases 1 e 2 e aguardar confirmação específica antes da Fase 3. Para o projeto 1, instale `requirements.txt`, configure as variáveis opcionais de `.env.example`, execute `python app.py` e valide com `python -m unittest discover -s tests -v`. Use um banco SQLite separado para desenvolvimento e testes. No projeto 2, execute `npm ci`, defina `ADMIN_API_KEY` e `PAYMENT_GATEWAY_KEY`, rode `npm start` e valide com `npm test`; `api.http` mostra os corpos e o cabeçalho administrativo. No projeto 3, instale `requirements.txt`, configure `.env.example`, execute `python seed.py`, rode `python app.py` e valide com `python -m unittest discover -s tests -v`.
+Entre em cada subprojeto e invoque explicitamente `$refactor-arch` em uma sessão Codex. A skill deve apresentar as Fases 1 e 2 e aguardar confirmação específica antes da Fase 3. Para o projeto 1, instale `requirements.txt`, configure as variáveis opcionais de `.env.example`, execute `python app.py` e valide com `python -m unittest discover -s tests -v`. Use um banco SQLite separado para desenvolvimento e testes. No projeto 2, execute `npm ci`, defina `ADMIN_API_KEY` e `PAYMENT_GATEWAY_KEY`, rode `npm start` e valide com `npm test`; `api.http` mostra os corpos e o cabeçalho administrativo. No projeto 3, instale `requirements.txt`, defina obrigatoriamente `TASK_MANAGER_SECRET_KEY` com pelo menos 32 caracteres, configure as demais variáveis de `.env.example`, execute `python seed.py`, rode `python app.py` e valide com `python -m unittest discover -s tests -v`.

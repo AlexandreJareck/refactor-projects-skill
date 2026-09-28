@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from sqlalchemy import delete, func, select
 
-from app import app
+from app import create_app
 from database import db
 from models.category import Category
 from models.task import Task
@@ -13,6 +13,7 @@ from utils.datetime_utils import utc_now
 
 
 def seed_data():
+    app = create_app()
     with app.app_context():
         db.create_all()
         db.session.execute(delete(Task))

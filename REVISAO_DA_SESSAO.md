@@ -157,6 +157,12 @@ As três suítes foram repetidas na mesma revisão: projeto 1 com 6 testes, proj
 
 O commit de validação `489a391` foi enviado para `origin/main`. Uma consulta Git anônima, com helpers de credencial desabilitados, encontrou essa referência remota, e o README em `raw.githubusercontent.com` respondeu HTTP 200. Isso comprova que o fork estava público e continha a entrega no momento da verificação. Um commit documental posterior registra esta evidência e deve ser igualmente conferido após o push final.
 
+## Correção após retorno da avaliação
+
+O avaliador apontou que TM-001 recomendava exigir uma chave forte no startup, mas `config.py` permitia `SECRET_KEY=None`. A correção foi aplicada em `config.validate_config`, chamada pela factory `create_app` depois de carregar o ambiente e eventuais overrides de teste: a aplicação lança `RuntimeError` se a chave não for string com pelo menos 32 caracteres. A criação global da aplicação durante o import foi removida; `python app.py` e `seed.py` chamam a factory e, portanto, falham imediatamente sem configuração válida. `.env.example` e os READMEs documentam o requisito.
+
+A suíte do projeto 3 passou a ter 7 testes. O novo teste cobre chave ausente, vazia e curta; a execução completa continuou cobrindo as 22 rotas, boot HTTP, segurança das respostas, migração de hash e contagem de queries.
+
 ## Correções após a revisão independente
 
 A revisão final encontrou três lacunas de evidência e documentação: a sessão histórica do projeto 2 não tinha sido iniciada dentro do subprojeto; o relatório do projeto 1 respeitava a severidade, mas não o segundo critério de ordenação por caminho e linha; e o README resumia os testes sem conservar um trecho literal do resultado.

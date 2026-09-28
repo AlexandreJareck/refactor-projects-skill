@@ -21,7 +21,7 @@ class TaskManagerIntegrationTest(unittest.TestCase):
                 "TESTING": True,
                 "PROPAGATE_EXCEPTIONS": False,
                 "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-                "SECRET_KEY": "test-only-secret",
+                "SECRET_KEY": "test-only-secret-with-at-least-32-characters",
             }
         )
         self.context = self.app.app_context()
@@ -80,6 +80,15 @@ class TaskManagerIntegrationTest(unittest.TestCase):
             for method in rule.methods - {"HEAD", "OPTIONS"}
         }
         self.assertEqual(22, len(rules))
+
+    def test_application_refuses_missing_or_weak_secret_key(self):
+        for secret_key in (None, "", "too-short"):
+            with self.subTest(secret_key=secret_key):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "TASK_MANAGER_SECRET_KEY is required and must contain at least 32 characters",
+                ):
+                    create_app({"SECRET_KEY": secret_key})
 
     def test_real_http_server_boots_and_answers_health(self):
         server = make_server("127.0.0.1", 0, self.app)

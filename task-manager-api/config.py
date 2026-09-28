@@ -13,3 +13,11 @@ class Config:
         "yes",
     }
 
+
+def validate_config(config):
+    secret_key = config.get("SECRET_KEY")
+    if not isinstance(secret_key, str) or len(secret_key) < 32:
+        raise RuntimeError(
+            "TASK_MANAGER_SECRET_KEY is required and must contain at least 32 characters"
+        )
+
